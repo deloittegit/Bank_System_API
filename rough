@@ -1,0 +1,5 @@
+df = pd.read_csv('UserDetails.csv')
+df.drop(df.columns[df.columns.str.contains('unnamed',case = False)],axis = 1, inplace = True)
+df2 = df.dropna()
+df3 = df2.drop_duplicates()
+print(df3)
