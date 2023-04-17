@@ -3,7 +3,7 @@ import sqlite3
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 import pandas as pd 
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, DateTime, Date
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -12,7 +12,6 @@ from sqlalchemy import delete
 engine = create_engine('sqlite:///Bank.db', echo = True)
 Session = sessionmaker(bind = engine)
 session = Session()
-
 Base = declarative_base()
 
 #Function to read the data
@@ -61,7 +60,7 @@ class UserAccountDetails(Base):
         self.LastUpdatedTime = LastUpdatedTime
 listofAccountDetailsobjects = [(UserAccountDetails(row.UserId, row.AccountNumber, row.AccountBalance, row.LastUpdatedTime)) for index, row in AccountDetailsdf.iterrows()]
 
-df = pd.read_csv('UserTransactionsDetails.csv')
+df = pd.read_csv('UserTransactionsDetailsRe_Zero.csv')
 df.insert(0, 'TransactionId', df.index + 1)
 
 class UserTransactionDetails(Base):
@@ -87,12 +86,12 @@ listofTransactionDetailsobjects = [(UserTransactionDetails(row.TransactionId, ro
 #Base.metadata.create_all(engine)
 #session.query(UserDetails).delete()
 #session.query(UserAccountDetails).delete()
-#session.query(UserTransactionDetails).delete()
-#session.commit()
-
-obj = session.query(UserDetails).limit(10).all()
+session.query(UserTransactionDetails).delete()
 session.commit()
-print(obj)
+
+#obj = session.query(UserDetails).limit(10).all()
+#session.commit()
+#print(obj)
 
 
 
