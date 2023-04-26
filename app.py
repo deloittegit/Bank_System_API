@@ -1,8 +1,30 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, url_for, redirect
+from flask import session as ses
 import logging
 from flask_mail import Mail, Message
 from methods import *
+from authlib.integrations.flask_client import OAuth
+import os
+#from auth_decorator import login_required
 app = Flask(__name__)
+
+app.config['SERVER_NAME'] = '127.0.0.1:8000'
+app.config['SECRET_KEY'] = "Your_secret_string"
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id="932918296221-l7ar071dfm0mqjgqtnccuj6mejibce04.apps.googleusercontent.com",
+    client_secret="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",
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',  # This is only needed if using openId to fetch user info
+    client_kwargs={'scope': 'email profile'},
+    server_metadata_url= 'https://accounts.google.com/.well-known/openid-configuration',
+)
+
 
 #changing the level of the logging to debug
 logging.basicConfig(level=logging.DEBUG)
@@ -15,6 +37,12 @@ app.config['MAIL_PASSWORD'] = 'nyaedlzboatehstz'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
+
+@app.route('/')
+#@login_required
+def hello_world():
+    email = dict(ses).get('email', None)
+    return f'Hello, you are logged in as {email}!'
 
 @app.route("/userDetailsDataLoad", methods=['POST'])
 def user_data_load():
@@ -89,6 +117,26 @@ def mail_sender():
     msg.body = 'You have received the email because your account does not fulfill the minimum requirement.'
     mail.send(msg)
     return 'Sent'
+
+@app.route('/login')
+def login():
+    google = oauth.create_client('google')  # create the google oauth client
+    redirect_uri = url_for('authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/authorize')
+def authorize():
+    google = oauth.create_client('google')  # create the google oauth client
+    token = google.authorize_access_token()  # Access token from google (needed to get user info)
+    resp = google.get('userinfo')  # userinfo contains stuff u specificed in the scrope
+    user_info = resp.json()
+    #user = oauth.google.userinfo()  # uses openid endpoint to fetch user info
+    # Here you use the profile/user data that you got and query your database find/register the user
+    # and set ur own data in the session not the profile from google
+    ses['email'] = user_info['email']
+    #session.permanent = True  # make the session permanant so it keeps existing after broweser gets closed
+    return redirect('/')
 
 if __name__=="__main__":
     app.run(debug='True', port = 8000)
