@@ -1,54 +1,32 @@
 from flask import Flask, jsonify
 import logging
-import sqlite3
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
-import pandas as pd 
+from flask_mail import Mail, Message
 from methods import *
-import json
-from sqlalchemy import func, desc, extract
-
 app = Flask(__name__)
 
 #changing the level of the logging to debug
 logging.basicConfig(level=logging.DEBUG)
 
+#calling the mail object
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'sendersmail123@gmail.com'
+app.config['MAIL_PASSWORD'] = 'nyaedlzboatehstz'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 
-#Classes to make the SQLalchemy output json serializable using Marshmallow
-ma = Marshmallow(app)
-class UserDetailsSchema(ma.Schema):
-    class Meta:
-        fields = ('UserId', 'UserName', 'Address', 'Email', 'LastUpdatedTime')
-user_schema = UserDetailsSchema()
-users_schema = UserDetailsSchema(many=True)
-
-class UserAccountDetailsSchema(ma.Schema):
-    class Meta:
-        fields = ('UserId', 'AccountNumber', 'AccountBalance', 'LastUpdatedTime')
-user_account_schema = UserAccountDetailsSchema()
-users_account_schema = UserAccountDetailsSchema(many=True)
-
-class UserTransactionDetailsSchema(ma.Schema):
-    class Meta:
-        fields = ('TransactionId', 'AccountNumber', 'TransactionDate', 'Description', 'Withdrawal', 'Deposit', 'Balance')
-user_transaction_schema = UserTransactionDetailsSchema()
-users_transaction_schema = UserTransactionDetailsSchema(many=True)
-
-#app route and endpoints
 @app.route("/userDetailsDataLoad", methods=['POST'])
 def user_data_load():
     k = data_load(listofUserDetailsobjects)
     app.logger.info('Dataload request')
     return "Data loaded successfully"
 
-
-
 @app.route("/AccountDetailsDataLoad", methods=['POST'])
 def account_data_load():
     l = data_load(listofAccountDetailsobjects)
     app.logger.info('Dataload request')
     return "Data loaded successfully"
-
 
 @app.route("/TransactionDetailsDataLoad", methods=['POST'])
 def transaction_data_load():
@@ -104,6 +82,13 @@ def user_top10_tran(x):
     output = users_transaction_schema.dump(obj)
     app.logger.info('Requested data from the database')
     return output
+
+@app.route("/sendEmailtoUsersWithBalanceLessThanMinimum", methods = ['POST'])
+def mail_sender():
+    msg = Message('Hello', sender ='sendersmail123@gmail.com', recipients = listminimmumbalance)
+    msg.body = 'You have received the email because your account does not fulfill the minimum requirement.'
+    mail.send(msg)
+    return 'Sent'
 
 if __name__=="__main__":
     app.run(debug='True', port = 8000)

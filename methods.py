@@ -1,13 +1,15 @@
-from flask import Flask, jsonify
-import sqlite3
 from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
 import pandas as pd 
 from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, DateTime, Date
+from sqlalchemy import func, desc, extract
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import delete
+from flask_marshmallow import Marshmallow
+import pythonlibrary
+from pythonlibrary import myfunctions
+
 
 engine = create_engine('sqlite:///Bank.db', echo = True)
 Session = sessionmaker(bind = engine)
@@ -62,7 +64,6 @@ listofAccountDetailsobjects = [(UserAccountDetails(row.UserId, row.AccountNumber
 
 df = pd.read_csv('UserTransactionsDetailsRe_Zero.csv')
 df.insert(0, 'TransactionId', df.index + 1)
-
 class UserTransactionDetails(Base):
     __tablename__= 'UserTransactionDetails'
     TransactionId = Column(Integer, primary_key = True)
@@ -82,19 +83,33 @@ class UserTransactionDetails(Base):
         self.Balance = Balance
 listofTransactionDetailsobjects = [(UserTransactionDetails(row.TransactionId, row.AccountNumber, row.TransactionDate, row.Description, row.Withdrawl, row.Deposit, row.Balance)) for index, row in df.iterrows()]
 
+listminimmumbalance = []
+obj = session.query(UserAccountDetails.AccountBalance).filter(UserAccountDetails.AccountBalance < 800).all()
+for i in range(len(obj)):
+    listminimmumbalance.append('receiveremail123@gmail.com')
 
-#Base.metadata.create_all(engine)
-#session.query(UserDetails).delete()
-#session.query(UserAccountDetails).delete()
-session.query(UserTransactionDetails).delete()
-session.commit()
+#Classes to make the SQLalchemy output json serializable using Marshmallow
+ma = Marshmallow()
+class UserDetailsSchema(ma.Schema):
+    class Meta:
+        fields = ('UserId', 'UserName', 'Address', 'Email', 'LastUpdatedTime')
+user_schema = UserDetailsSchema()
+users_schema = UserDetailsSchema(many=True)
 
-#obj = session.query(UserDetails).limit(10).all()
-#session.commit()
-#print(obj)
+class UserAccountDetailsSchema(ma.Schema):
+    class Meta:
+        fields = ('UserId', 'AccountNumber', 'AccountBalance', 'LastUpdatedTime')
+user_account_schema = UserAccountDetailsSchema()
+users_account_schema = UserAccountDetailsSchema(many=True)
 
+class UserTransactionDetailsSchema(ma.Schema):
+    class Meta:
+        fields = ('TransactionId', 'AccountNumber', 'TransactionDate', 'Description', 'Withdrawal', 'Deposit', 'Balance')
+user_transaction_schema = UserTransactionDetailsSchema()
+users_transaction_schema = UserTransactionDetailsSchema(many=True)
 
-
+obj = myfunctions.readandparse_csv('UserDetails.csv')
+print(obj)
 
 
 
